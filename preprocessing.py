@@ -46,10 +46,6 @@ class MissingValueProcessor:
 
         return novo_dicionario
 
-        
-
-        
-
     def notna(self, columns: Set[str] = None) -> Dict[str, List[Any]]:
         """
         Retorna um novo dataset contendo apenas as linhas que não possuem
@@ -62,7 +58,26 @@ class MissingValueProcessor:
         Returns:
             Dict[str, List[Any]]: Um dicionário representando as linhas sem valores nulos.
         """
-        pass
+        
+        colunas_verificar = self._get_target_columns(columns)
+
+        novo_dicionario = {}
+        for col in self.dataset:
+            novo_dicionario[col] = []
+
+        numero_linhas = len(self.dataset[next(iter(self.dataset))])
+
+        for i in range(numero_linhas):
+            tem_nulo = False
+            for col in  colunas_verificar:
+                if self.dataset[col][i] is None:
+                    tem_nulo = True
+                    break
+            if not tem_nulo:
+                for col in self.dataset:
+                    novo_dicionario[col].append(self.dataset[col][i])
+
+        return novo_dicionario
 
     def fillna(self, columns: Set[str] = None, method: str = 'mean', default_value: Any = 0):
         """
