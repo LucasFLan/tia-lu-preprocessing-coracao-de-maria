@@ -27,22 +27,14 @@ class MissingValueProcessor:
         
         colunas_verificar = self._get_target_columns(columns)
 
-        novo_dicionario = {}
-        for col in self.dataset:
-            novo_dicionario[col] = []
+        novo_dicionario = {col: [] for col in self.dataset}
 
         numero_linhas = len(self.dataset[next(iter(self.dataset))])
 
         for i in range(numero_linhas):
-            tem_nulo = False
-            for col in colunas_verificar:
-                if self.dataset[col][i] is None:
-                    tem_nulo = True
-                    break
-
-            if tem_nulo:
-                for col in self.dataset:
-                    novo_dicionario[col].append(self.dataset[col][i])
+            if any(self.dataset[coluna][i] is None for coluna in colunas_verificar):
+                for coluna in self.dataset:
+                    novo_dicionario[coluna].append(self.dataset[coluna][i])
 
         return novo_dicionario
 
@@ -61,19 +53,12 @@ class MissingValueProcessor:
         
         colunas_verificar = self._get_target_columns(columns)
 
-        novo_dicionario = {}
-        for col in self.dataset:
-            novo_dicionario[col] = []
+        novo_dicionario = {col: [] for col in self.dataset}
 
         numero_linhas = len(self.dataset[next(iter(self.dataset))])
 
         for i in range(numero_linhas):
-            tem_nulo = False
-            for col in  colunas_verificar:
-                if self.dataset[col][i] is None:
-                    tem_nulo = True
-                    break
-            if not tem_nulo:
+            if all(self.dataset[col][i] is not None for col in colunas_verificar):
                 for col in self.dataset:
                     novo_dicionario[col].append(self.dataset[col][i])
 
@@ -89,7 +74,27 @@ class MissingValueProcessor:
             method (str): 'mean', 'median', 'mode', ou 'default_value'.
             default_value (Any): Valor para usar com o método 'default_value'.
         """
-        pass
+        
+        colunas_verificar = self._get_target_columns(columns)
+
+        metodos_statistica = Statistics(self.dataset)
+
+        for coluna in colunas_verificar:
+            valor_preenchimento = None
+
+            if method == "mean":
+                valor_preenchimento = metodos_statistica.mean(coluna)
+            elif method == "median":
+                valor_preenchimento = metodos_statistica.median(coluna)
+            elif method == "mode":
+                valor_preenchimento = metodos_statistica.mode(coluna)
+            elif method == "default_value":
+                valor_preenchimento = default_value
+            else:
+                raise ValueError(f"Método '{method}' não suportado.")
+
+            if valor_preenchimento is not None:
+                self.dataset[coluna] = [valor_preenchimento if v is None else v for v in self.dataset[coluna]]
 
     def dropna(self, columns: Set[str] = None):
         """
