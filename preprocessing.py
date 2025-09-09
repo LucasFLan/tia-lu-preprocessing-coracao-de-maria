@@ -94,7 +94,7 @@ class MissingValueProcessor:
                 raise ValueError(f"Método '{method}' não suportado.")
 
             if valor_preenchimento is not None:
-                self.dataset[coluna] = [valor_preenchimento if v is None else v for v in self.dataset[coluna]]
+                self.dataset[coluna] = [valor_preenchimento if valor_coluna is None else valor_coluna for valor_coluna in self.dataset[coluna]]
 
     def dropna(self, columns: Set[str] = None):
         """
@@ -104,8 +104,19 @@ class MissingValueProcessor:
         Args:
             columns (Set[str]): Colunas a serem verificadas para valores nulos. Se vazio, todas as colunas são verificadas.
         """
-        pass
+        
+        colunas_verificar = self._get_target_columns(columns)
 
+        numero_linhas = len(self.dataset[next(iter(self.dataset))])
+
+        lista_sem_nulos = {col: [] for col in self.dataset}
+
+        for i in range(numero_linhas):
+            if all(self.dataset[coluna][i] is not None for coluna in colunas_verificar):
+                for col in self.dataset:
+                    lista_sem_nulos[col].append(self.dataset[col][i])
+
+        self.dataset = lista_sem_nulos
 
 class Scaler:
     """
@@ -125,7 +136,33 @@ class Scaler:
         Args:
             columns (Set[str]): Colunas para aplicar o scaler. Se vazio, tenta aplicar a todas.
         """
-        pass
+        
+        colunas_verificar = self._get_target_columns(columns)
+
+        for coluna in colunas_verificar:
+            valores = self.dataset[coluna]
+
+            valores_numericos = [valor_numerico for valor_numerico in valores if isinstance(valor_numerico, (int, float)) and valor_numerico is not None ]
+
+            if not valores_numericos:
+                continue
+
+            valor_minimo = min(valores_numericos)
+            valor_maximo = max(valores_numericos)
+            intervalo_valores = valor_maximo - valor_minimo
+
+            valores_escalonados = []
+            if(intervalo_valores == 0):
+                valores_escalonados = [0.0 if isinstance(valor, (int, float)) else valor for valor in valores]
+            else:
+                for valor in valores:
+                    if isinstance(valor, (int, float)):
+                        valor_escalonado = (valor - valor_minimo) / intervalo_valores
+                        valores_escalonados.append(valor_escalonado)
+                    else:
+                        valores_escalonados.append(valor)
+                
+            self.dataset[coluna] = valores_escalonados
 
     def standard_scaler(self, columns: Set[str] = None):
         """
@@ -184,7 +221,12 @@ class Preprocessing:
         Valida se todas as listas (colunas) no dicionário do dataset
         têm o mesmo comprimento.
         """
-        pass
+
+        tamanho_lista_referencia = len(next(iter(self.dataset.values())))
+        
+        for _, valores in self.dataset.items():
+            if len(valores) != tamanho_lista_referencia:
+                raise ValueError("Todas as colunas no dataset devem ter o mesmo tamanho.")
 
     def isna(self, columns: Set[str] = None) -> Dict[str, List[Any]]:
         """
