@@ -27,10 +27,10 @@ class Statistics:
                 raise TypeError("Todos os valores no dicionário do dataset devem ser listas.")
             
         if dataset:
-            lista_valores = list(dataset.values() )
+            lista_valores = list(dataset.values())
             tamanho_lista_valores_referencia = len(lista_valores[0])
             for lista in lista_valores[1:]:
-                if len(valor) != tamanho_lista_valores_referencia:
+                if len(lista) != tamanho_lista_valores_referencia:
                     raise ValueError("Todas as colunas no dataset devem ter o mesmo tamanho.")
 
         self.dataset = dataset
