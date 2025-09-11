@@ -61,7 +61,7 @@ class Statistics:
         if not valores_coluna:
             return 0.0
         
-        valores_validos = [v for v in valores_coluna if isinstance(v, (int, float))]
+        valores_validos = [valor for valor in valores_coluna if isinstance(valor, (int, float))]
 
         if not valores_validos:
             return 0.0
@@ -170,7 +170,6 @@ class Statistics:
         float
             O desvio padrão dos valores na coluna.
         """
-
     
         if column not in self.dataset:
             raise KeyError(f"A coluna '{column}' não existe no dataset.")
@@ -179,11 +178,16 @@ class Statistics:
 
         if not valores_coluna:
             return 0.0
+        
+        valores_validos = [valor for valor in valores_coluna if isinstance(valor, (int, float))]
+
+        if not valores_validos:
+            return 0.0
 
         media_aritmetica = self.mean(column)
 
         valores_subtraido_media = []
-        for valor in valores_coluna:
+        for valor in valores_validos:
             valores_subtraido_media.append(valor - media_aritmetica) 
 
         soma_valores_ao_quadrado = 0
@@ -192,7 +196,7 @@ class Statistics:
                 
             soma_valores_ao_quadrado += valor_ao_quadrado
 
-        divisao = soma_valores_ao_quadrado / len(valores_coluna)
+        divisao = soma_valores_ao_quadrado / len(valores_validos)
 
         desvio_padrao = divisao ** 0.5
 

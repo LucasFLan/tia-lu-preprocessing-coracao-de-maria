@@ -152,7 +152,7 @@ class Scaler:
             intervalo_valores = valor_maximo - valor_minimo
 
             valores_escalonados = []
-            if(intervalo_valores == 0):
+            if intervalo_valores == 0:
                 valores_escalonados = [0.0 if isinstance(valor, (int, float)) else valor for valor in valores]
             else:
                 for valor in valores:
@@ -172,7 +172,36 @@ class Scaler:
         Args:
             columns (Set[str]): Colunas para aplicar o scaler. Se vazio, tenta aplicar a todas.
         """
-        pass
+        colunas_verificar = self._get_target_columns(columns)
+
+        metodos_statistica = Statistics(self.dataset)
+
+        for coluna in colunas_verificar:
+            valores = self.dataset[coluna]
+
+            valores_numericos = [valor_numerico for valor_numerico in valores if isinstance(valor_numerico, (int, float)) and valor_numerico is not None ]
+
+            if not valores_numericos:
+                continue
+
+            # media_aritmetica = metodos_statistica.mean(coluna)
+            # desvio_padrao = metodos_statistica.stdev(coluna)
+
+            media_aritmetica = sum(valores_numericos) / len(valores_numericos)
+            desvio_padrao = (sum((v - media_aritmetica) ** 2 for v in valores_numericos) / len(valores_numericos)) ** 0.5
+
+            valores_escalonados = []
+            if desvio_padrao == 0:
+                valores_escalonados = [0.0 if isinstance(valor, (int, float)) else valor for valor in valores]
+            else:
+                for valor in valores:
+                    if isinstance(valor, (int, float)):
+                        valor_escalonado = (valor - media_aritmetica) / desvio_padrao
+                        valores_escalonados.append(valor_escalonado)
+                    else:
+                        valores_escalonados.append(valor)
+
+            self.dataset[coluna] = valores_escalonados
 
 class Encoder:
     """
@@ -189,7 +218,24 @@ class Encoder:
         Args:
             columns (Set[str]): Colunas categóricas para codificar.
         """
-        pass
+
+        for coluna in columns:
+            if coluna not in self.dataset:
+                continue
+    
+            valores = self.dataset[coluna]
+            categorias = sorted({valor for valor in valores if valor is not None})  
+            mapa_categorias = {categoria: i for i, categoria in enumerate(categorias)}
+
+            colunas_codificadas = []
+            for valor in valores:
+                if valor is None:
+                    colunas_codificadas.append(None)
+                else:
+                    colunas_codificadas.append(mapa_categorias[valor])
+
+            self.dataset[coluna] = colunas_codificadas
+
 
     def oneHot_encode(self, columns: Set[str]):
         """
