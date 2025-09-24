@@ -87,7 +87,9 @@ class MissingValueProcessor:
             elif method == "median":
                 valor_preenchimento = metodos_statistica.median(coluna)
             elif method == "mode":
-                valor_preenchimento = metodos_statistica.mode(coluna)
+                modas = metodos_statistica.mode(coluna)
+                if modas:
+                    valor_preenchimento = modas[0]
             elif method == "default_value":
                 valor_preenchimento = default_value
             else:
@@ -104,19 +106,8 @@ class MissingValueProcessor:
         Args:
             columns (Set[str]): Colunas a serem verificadas para valores nulos. Se vazio, todas as colunas são verificadas.
         """
-        
-        colunas_verificar = self._get_target_columns(columns)
 
-        numero_linhas = len(self.dataset[next(iter(self.dataset))])
-
-        lista_sem_nulos = {col: [] for col in self.dataset}
-
-        for i in range(numero_linhas):
-            if all(self.dataset[coluna][i] is not None for coluna in colunas_verificar):
-                for col in self.dataset:
-                    lista_sem_nulos[col].append(self.dataset[col][i])
-
-        self.dataset = lista_sem_nulos
+        self.dataset = self.notna(columns)
 
 class Scaler:
     """
@@ -174,21 +165,22 @@ class Scaler:
         """
         colunas_verificar = self._get_target_columns(columns)
 
-        metodos_statistica = Statistics(self.dataset)
+        processor = MissingValueProcessor(self.dataset)
+
+        valores_filtrados = processor.notna()
+
+        metodos_statistica = Statistics(valores_filtrados)
 
         for coluna in colunas_verificar:
             valores = self.dataset[coluna]
 
-            valores_numericos = [valor_numerico for valor_numerico in valores if isinstance(valor_numerico, (int, float)) and valor_numerico is not None ]
+            valores_numericos = [valor_numerico for valor_numerico in valores if isinstance(valor_numerico, (int, float)) and valor_numerico is not None]
 
             if not valores_numericos:
                 continue
 
-            # media_aritmetica = metodos_statistica.mean(coluna)
-            # desvio_padrao = metodos_statistica.stdev(coluna)
-
-            media_aritmetica = sum(valores_numericos) / len(valores_numericos)
-            desvio_padrao = (sum((v - media_aritmetica) ** 2 for v in valores_numericos) / len(valores_numericos)) ** 0.5
+            media_aritmetica = metodos_statistica.mean(coluna)
+            desvio_padrao = metodos_statistica.stdev(coluna)
 
             valores_escalonados = []
             if desvio_padrao == 0:
@@ -245,8 +237,19 @@ class Encoder:
         Args:
             columns (Set[str]): Colunas categóricas para codificar.
         """
-        pass
+        
+        for coluna in columns:
+            valores = self.dataset[coluna]
+            categorias = sorted({val for val in valores if val is not None})
 
+            for categoria in categorias:
+                nova_coluna = f"{coluna}_{categoria}"
+            
+                valores_nova_coluna = [1 if valor == categoria else 0 for valor in valores]
+
+                self.dataset[nova_coluna] = valores_nova_coluna
+
+            del self.dataset[coluna]
 
 class Preprocessing:
     """
@@ -278,20 +281,20 @@ class Preprocessing:
         """
         Atalho para missing_values.isna(). Retorna as linhas com valores nulos.
         """
-        return self.missing_values.isna(columns)
+        return self.missing_values.isna(columns=columns)
 
     def notna(self, columns: Set[str] = None) -> Dict[str, List[Any]]:
         """
         Atalho para missing_values.notna(). Retorna as linhas sem valores nulos.
         """
-        return self.missing_values.notna(columns)
+        return self.missing_values.notna(columns=columns) 
 
     def fillna(self, columns: Set[str] = None, method: str = 'mean', default_value: Any = 0):
         """
         Atalho para missing_values.fillna(). Preenche valores nulos.
         Retorna 'self' para permitir encadeamento de métodos.
         """
-        self.missing_values.fillna(columns, method, default_value)
+        self.missing_values.fillna(columns=columns, method=method, default_value=default_value) 
         return self
 
     def dropna(self, columns: Set[str] = None):
@@ -299,7 +302,7 @@ class Preprocessing:
         Atalho para missing_values.dropna(). Remove linhas com valores nulos.
         Retorna 'self' para permitir encadeamento de métodos.
         """
-        self.missing_values.dropna(columns)
+        self.missing_values.dropna(columns=columns) 
         return self
 
     def scale(self, columns: Set[str] = None, method: str = 'minMax'):
@@ -313,9 +316,9 @@ class Preprocessing:
         Retorna 'self' para permitir encadeamento de métodos.
         """
         if method == 'minMax':
-            self.scaler.minMax_scaler(columns)
+            self.scaler.minMax_scaler(columns=columns) 
         elif method == 'standard':
-            self.scaler.standard_scaler(columns)
+            self.scaler.standard_scaler(columns=columns) 
         else:
             raise ValueError(f"Método de escalonamento '{method}' não suportado. Use 'minMax' ou 'standard'.")
         return self
@@ -335,9 +338,9 @@ class Preprocessing:
             return self
 
         if method == 'label':
-            self.encoder.label_encode(columns)
+            self.encoder.label_encode(columns=columns)
         elif method == 'oneHot':
-            self.encoder.oneHot_encode(columns)
+            self.encoder.oneHot_encode(columns=columns) 
         else:
             raise ValueError(f"Método de codificação '{method}' não suportado. Use 'label' ou 'oneHot'.")
         return self

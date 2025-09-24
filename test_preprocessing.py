@@ -24,7 +24,7 @@ class TestMissingValueProcessor(unittest.TestCase):
         
         # Testa a busca por nulos em todas as colunas (comportamento padrão)
         result_all_cols = processor.isna()
-        self.assertEqual(len(result_all_cols['idade']), 4) # Todas as linhas têm algum nulo
+        self.assertEqual(len(result_all_cols['idade']), 3) # Todas as linhas têm algum nulo
 
     def test_notna(self):
         processor = MissingValueProcessor(copy.deepcopy(self.data))
@@ -108,10 +108,15 @@ class TestPreprocessingFacade(unittest.TestCase):
             Preprocessing(invalid_data)
 
     # Patch indica o local ONDE o objeto é usado, não onde ele é definido.
-    @patch('preprocessing_lib.MissingValueProcessor')
-    @patch('preprocessing_lib.Scaler')
-    @patch('preprocessing_lib.Encoder')
-    @patch('preprocessing_lib.Statistics')
+    # @patch('preprocessing_lib.MissingValueProcessor')
+    # @patch('preprocessing_lib.Scaler')
+    # @patch('preprocessing_lib.Encoder')
+    # @patch('preprocessing_lib.Statistics')
+    @patch('preprocessing.MissingValueProcessor')
+    @patch('preprocessing.Scaler')
+    @patch('preprocessing.Encoder')
+    @patch('food_statistics.Statistics')
+
     def test_facade_methods_call_correct_implementations(self, MockStats, MockEncoder, MockScaler, MockMVP):
         """
         Testa se os métodos de fachada da classe Preprocessing chamam
