@@ -302,7 +302,7 @@ class Preprocessing:
         Atalho para missing_values.dropna(). Remove linhas com valores nulos.
         Retorna 'self' para permitir encadeamento de métodos.
         """
-        self.missing_values.dropna(columns=columns) 
+        self.missing_values.dropna(columns=columns) #TROCA
         return self
 
     def scale(self, columns: Set[str] = None, method: str = 'minMax'):
@@ -316,9 +316,9 @@ class Preprocessing:
         Retorna 'self' para permitir encadeamento de métodos.
         """
         if method == 'minMax':
-            self.scaler.minMax_scaler(columns=columns) 
+            self.scaler.minMax_scaler(columns=columns) #TROCA
         elif method == 'standard':
-            self.scaler.standard_scaler(columns=columns) 
+            self.scaler.standard_scaler(columns=columns) #TROCA
         else:
             raise ValueError(f"Método de escalonamento '{method}' não suportado. Use 'minMax' ou 'standard'.")
         return self
@@ -338,9 +338,9 @@ class Preprocessing:
             return self
 
         if method == 'label':
-            self.encoder.label_encode(columns=columns)
+            self.encoder.label_encode(columns=columns) #TROCA
         elif method == 'oneHot':
-            self.encoder.oneHot_encode(columns=columns) 
+            self.encoder.oneHot_encode(columns=columns) #TROCA
         else:
             raise ValueError(f"Método de codificação '{method}' não suportado. Use 'label' ou 'oneHot'.")
         return self
