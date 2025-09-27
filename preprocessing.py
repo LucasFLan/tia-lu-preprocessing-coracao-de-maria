@@ -11,6 +11,9 @@ class MissingValueProcessor:
     def _get_target_columns(self, columns: Set[str]) -> List[str]:
         """Retorna as colunas a serem processadas. Se 'columns' for vazio, retorna todas as colunas."""
         return list(columns) if columns else list(self.dataset.keys())
+    
+    def _pegar_numero_linhas(self):
+        return len(self.dataset[next(iter(self.dataset))])
 
     def isna(self, columns: Set[str] = None) -> Dict[str, List[Any]]:
         """
@@ -29,7 +32,7 @@ class MissingValueProcessor:
 
         novo_dicionario = {col: [] for col in self.dataset}
 
-        numero_linhas = len(self.dataset[next(iter(self.dataset))])
+        numero_linhas = self._pegar_numero_linhas()
 
         for i in range(numero_linhas):
             if any(self.dataset[coluna][i] is None for coluna in colunas_verificar):
