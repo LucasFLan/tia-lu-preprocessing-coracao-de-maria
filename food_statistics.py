@@ -26,16 +26,15 @@ class Statistics:
             if not isinstance(valor, list):
                 raise TypeError("Todos os valores no dicionário do dataset devem ser listas.")
             
-        if dataset:
-            lista_valores = list(dataset.values())
-            tamanho_lista_valores_referencia = len(lista_valores[0])
-            for lista in lista_valores[1:]:
-                if len(lista) != tamanho_lista_valores_referencia:
-                    raise ValueError("Todas as colunas no dataset devem ter o mesmo tamanho.")
+        if not dataset:
+            raise ValueError("O dataset não pode ser vazio.")
+            
+        if len( set( len(value) for value in dataset.values() ) ) != 1:
+            raise ValueError("Todas as colunas no dataset devem ter o mesmo tamanho.")
 
         self.dataset = dataset
 
-    def mean(self, column):
+    def mean(self, column: str) -> float:
         """
         Calcula a média aritmética de uma coluna.
 
@@ -52,23 +51,20 @@ class Statistics:
         float
             A média dos valores na coluna.
         """
-
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
-   
+        self._validate_column(column)
         valores_coluna = self.dataset[column]
 
-        if not valores_coluna:
-            return 0.0
-        
-        valores_validos = [valor for valor in valores_coluna if isinstance(valor, (int, float))]
+        valores_validos = [v for v in valores_coluna if v is not None]
 
         if not valores_validos:
-            return 0.0
-            
-        media_aritmetica = sum(valores_validos) / len(valores_validos)
+            raise ValueError(f"A coluna '{column}' está vazia, não é possível calcular a média.")
+        
+        return sum(valores_validos) / len(valores_validos)
 
-        return media_aritmetica
+    def _validate_column(self, column: str) -> None:
+        if column not in self.dataset:
+            raise KeyError(f"A coluna '{column}' não existe no dataset.")
+
 
     def median(self, column):
         """
@@ -86,30 +82,26 @@ class Statistics:
         float
             O valor da mediana da coluna.
         """
-
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
-
+        self._validate_column(column)
         valores_coluna = self.dataset[column]
 
-        if not valores_coluna:
-            return 0.0
+        valores_validos = [v for v in valores_coluna if v is not None]
+
+        if not valores_validos:
+            raise ValueError(f"A coluna '{column}' está vazia, não é possível calcular a mediana.")
+        
+        if not all(isinstance(v, (int, float)) for v in valores_validos):
+            raise TypeError(f"A coluna '{column}' contém valores não numéricos, impossível calcular a mediana.")
 
         quantidade_valores = len(valores_coluna)
-
-        for i in range(quantidade_valores):
-            for j in range(0, quantidade_valores - i - 1):
-                if valores_coluna[j] > valores_coluna[j + 1]:
-                    valores_coluna[j], valores_coluna[j + 1] = valores_coluna[j + 1], valores_coluna[j]
+        coluna_ordenada = sorted(valores_coluna)
+        indice = quantidade_valores // 2
         
         if quantidade_valores % 2 == 0:
-            indice = int(quantidade_valores / 2)
-            mediana = (valores_coluna[indice-1] + valores_coluna[indice]) / 2
+            return (coluna_ordenada[indice - 1] + coluna_ordenada[indice]) / 2
         else: 
-            indice_meio = int(quantidade_valores / 2)
-            mediana = valores_coluna[indice_meio]
+            return coluna_ordenada[indice]
 
-        return mediana
 
     def mode(self, column):
         """
@@ -129,27 +121,19 @@ class Statistics:
         """
 
         
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
-        
+        self._validate_column(column)
         valores_coluna = self.dataset[column]
-
+        
+        valores_coluna = [v for v in self.dataset[column] if v is not None]
+        
         if not valores_coluna:
-            return []
+            raise ValueError(f"A coluna '{column}' está vazia, não é possível calcular a moda.")
 
-        contador = {}
-        for valor in valores_coluna:
-            if valor in contador:
-                contador[valor] += 1
-            else:
-                contador[valor] = 1
+        frequencias = self.absolute_frequency(column=column)
             
-        numero_maximo_repeticoes = max(contador.values())
+        numero_maximo_repeticoes = max(frequencias.values())
 
-        modas = []
-        for chave, valor in contador.items():
-            if(valor == numero_maximo_repeticoes):
-                modas.append(chave)
+        modas = [k for k, v in frequencias.items() if v == numero_maximo_repeticoes]
 
         return modas
        
@@ -170,40 +154,17 @@ class Statistics:
         float
             O desvio padrão dos valores na coluna.
         """
-    
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
-
+        
+        self._validate_column(column)
         valores_coluna = self.dataset[column]
 
-        if not valores_coluna:
-            return 0.0
-        
-        valores_validos = [valor for valor in valores_coluna if isinstance(valor, (int, float))]
+        valores_validos = [v for v in valores_coluna if v is not None]
 
         if not valores_validos:
-            return 0.0
-
-        media_aritmetica = self.mean(column)
-
-        valores_subtraido_media = []
-        for valor in valores_validos:
-            valores_subtraido_media.append(valor - media_aritmetica) 
-
-        soma_valores_ao_quadrado = 0
-        for valor_subtraido in valores_subtraido_media:
-            valor_ao_quadrado = valor_subtraido ** 2
-                
-            soma_valores_ao_quadrado += valor_ao_quadrado
-
-        divisao = soma_valores_ao_quadrado / len(valores_validos)
-
-        desvio_padrao = divisao ** 0.5
-
-        return desvio_padrao
-  
-
+            raise ValueError(f"A coluna '{column}' está vazia, não é possível calcular o desvio padrão.")
         
+        variancia = self.variance(column=column)
+        return variancia ** 0.5
 
     def variance(self, column):
         """
@@ -222,28 +183,19 @@ class Statistics:
         float
             A variância dos valores na coluna.
         """
-        
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")        
+        media_aritimetica = self.mean(column)
+        self._validate_column(column)
 
         valores_coluna = self.dataset[column]
 
-        if not valores_coluna:
-            return 0.0
+        valores_validos = [v for v in valores_coluna if v is not None]
 
-        media_aritimetica = self.mean(column)
+        if not valores_validos:
+            raise ValueError(f"A coluna '{column}' está vazia, não é possível calcular a variância.")
 
-        valores_subtraido_media = []
-        for valor in valores_coluna:
-            valores_subtraido_media.append(valor - media_aritimetica)
+        soma = sum( (valor - media_aritimetica) ** 2 for valor in valores_coluna )
 
-        soma = 0
-        for valor_subtraido in valores_subtraido_media:
-            valor_ao_quadrado = valor_subtraido ** 2
-                
-            soma += valor_ao_quadrado
-
-        variancia = soma / len(valores_coluna)
+        variancia = soma / len(valores_validos)
 
         return variancia
 
@@ -267,35 +219,28 @@ class Statistics:
         float
             O valor da covariância entre as duas colunas.
         """
-
-        if column_a not in self.dataset:
-            raise KeyError(f"A coluna a: {column_a} não existe no dataset")
+        self._validate_column(column_a, column_b)
         
-        if column_b not in self.dataset:
-            raise KeyError(f"A coluna b: {column_b} não existe no dataset")
-
         valores_coluna_a = self.dataset[column_a]
         valores_coluna_b = self.dataset[column_b]
 
-        if not valores_coluna_a:
-            return 0.0
+        if not valores_coluna_a or not valores_coluna_b:
+            raise ValueError(f"A coluna '{column_a}' ou {column_b} está vazia, não é possível calcular a covariância.")
+
+        pares_validos = [(a, b) for a, b in zip(valores_coluna_a, valores_coluna_b) if a is not None and b is not None]
+
+        if not pares_validos:
+            raise ValueError(f"Não há pares válidos entre '{column_a}' e '{column_b}' para calcular a covariância.")
+
 
         media_coluna_a = self.mean(column_a)
         media_coluna_b = self.mean(column_b)
 
-        soma = 0
-        contador = 0
-        for valor_a in valores_coluna_a:
-            produto = (valor_a - media_coluna_a) * (valores_coluna_b[contador] - media_coluna_b)
-
-            contador += 1
-            soma += produto
+        soma = sum( (valor_a - media_coluna_a) * (valor_b - media_coluna_b) for valor_a, valor_b in zip(valores_coluna_a, valores_coluna_b))
 
         quantidade_pares = len(valores_coluna_a)
 
-        covariancia = soma / quantidade_pares
-
-        return covariancia
+        return soma / quantidade_pares
 
     def itemset(self, column):
         """
@@ -311,18 +256,13 @@ class Statistics:
         set
             Um conjunto com os valores únicos da coluna.
         """
-
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
-
+        self._validate_column(column)
         valores_coluna = self.dataset[column]
 
         if not valores_coluna:
-            return set()
+            raise ValueError(f"A coluna '{column}' está vazia, não é possível calcular o itemset.")
         
-        valores_unicos = set(valores_coluna)
-        
-        return valores_unicos
+        return set(valores_coluna)
 
     def absolute_frequency(self, column):
         """
@@ -340,13 +280,11 @@ class Statistics:
             suas contagens (frequência absoluta).
         """
 
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
-
+        self._validate_column(column)
         valores_coluna = self.dataset[column]
 
         if not valores_coluna:
-            return {}
+            raise ValueError(f"A coluna '{column}' está vazia, não é possível calcular a frequência absoluta.")
 
         frequencia = {}
         for value in valores_coluna:
@@ -374,12 +312,8 @@ class Statistics:
             suas proporções (frequência relativa).
         """
 
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
-
-        valores_coluna = self.dataset[column]
-
         frequencia_absoluta = self.absolute_frequency(column)
+        valores_coluna = self.dataset[column]
 
         frequencia_relativa = {}
         numero_itens = len(valores_coluna)
@@ -411,38 +345,27 @@ class Statistics:
             frequências acumuladas como valores.
         """
 
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
+        self._validate_column(column)
 
-        valores_coluna = self.dataset[column]
-        quantidade_valores = len(valores_coluna) 
-
-        for i in range(quantidade_valores):
-                for j in range(0, quantidade_valores - i - 1):
-                    if valores_coluna[j] > valores_coluna[j + 1]:
-                        valores_coluna[j], valores_coluna[j + 1] = valores_coluna[j + 1], valores_coluna[j]
-
-        frequencia_acumulada_absoluta = {}
-
-        frequencia_absoluta = self.absolute_frequency(column)
-
-        soma = 0
-        for chave, frequencia in frequencia_absoluta.items():
-            soma += frequencia
-            frequencia_acumulada_absoluta[chave] = soma
-
-        if frequency_method == 'absolute':
-            return frequencia_acumulada_absoluta
-        elif frequency_method == 'relative':
-            frequencia_acumulada_relativa = {}
-            for chave, frequencia in frequencia_acumulada_absoluta.items():
-                frequencia_acumulada_relativa[chave] = frequencia / quantidade_valores
-
-            return frequencia_acumulada_relativa
-        else:
+        if frequency_method not in {'absolute', 'relative'}:
             raise ValueError("O 'frequency_method' deve ser 'absolute' ou 'relative'.")
+    
+        if frequency_method == 'absolute':
+            frequencia = self.absolute_frequency(column=column)
+        else:
+            frequencia = self.relative_frequency(column=column)
 
+        chaves_ordenadas = sorted(frequencia.keys())
 
+        frequencia_acumulada_relativa = {}
+        soma = 0
+
+        for chave in chaves_ordenadas:
+            soma += frequencia[chave]
+            frequencia_acumulada_relativa[chave] = soma
+
+        return frequencia_acumulada_relativa
+        
     def conditional_probability(self, column, value1, value2):
         """
         Calcula a probabilidade condicional P(X_i = value1 | X_{i-1} = value2).
@@ -466,35 +389,24 @@ class Statistics:
         float
             A probabilidade condicional, um valor entre 0 e 1.
         """
-
-        if column not in self.dataset:
-            raise KeyError(f"A coluna '{column}' não existe no dataset.")
+        self._validate_column(column)
 
         valores_coluna = self.dataset[column]
 
         tamanho_lista = len(valores_coluna)
+        evento_b = 0
+        evento_a_b = 0
 
-        contador = 0
-        quantidade_vezes = 0
-        for valor in valores_coluna:                      
-            if valores_coluna[contador] == value2 and (tamanho_lista-1) > contador:
-                if valores_coluna[contador+1] == value1:
-                    quantidade_vezes += 1
-
-            contador += 1
-
-        contagem = 0
-        i = 0
-        for valor in valores_coluna:
-            if value2 == valor:
-                contagem += 1
-                if i == tamanho_lista-1:
-                    contagem = contagem - 1
-            i += 1
-
-        if contagem == 0:
-            return 0.0
-
-        probabilidade_condicional = (quantidade_vezes / contagem)
-
-        return probabilidade_condicional
+        if tamanho_lista < 2:
+            return KeyError(f"Não existe sequência possível")
+        
+        for i in range(0, tamanho_lista - 1):
+            if valores_coluna[i] == value2:
+                evento_b += 1
+                if valores_coluna[i+1] == value1:
+                    evento_a_b += 1
+                    
+        if evento_b == 0:
+            return KeyError(f"Não existe nenhum evento condicional")
+    
+        return  (evento_a_b / evento_b)
