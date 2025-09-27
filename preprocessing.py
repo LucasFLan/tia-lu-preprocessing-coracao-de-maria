@@ -58,7 +58,7 @@ class MissingValueProcessor:
 
         novo_dicionario = {col: [] for col in self.dataset}
 
-        numero_linhas = len(self.dataset[next(iter(self.dataset))])
+        numero_linhas = self._pegar_numero_linhas()
 
         for i in range(numero_linhas):
             if all(self.dataset[col][i] is not None for col in colunas_verificar):
